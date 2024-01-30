@@ -1,0 +1,7 @@
+"Skull_length" "Skull_breadth" "Femur_length" "Tibia_length" "Humerus_length" "Ulna_length"
+"Skull_length" 1 0.505 0.569 0.602 0.621 0.603
+"Skull_breadth" 0.505 1 0.422 0.467 0.482 0.45
+"Femur_length" 0.569 0.422 1 0.926 0.877 0.878
+"Tibia_length" 0.602 0.467 0.926 1 0.874 0.894
+"Humerus_length" 0.621 0.482 0.877 0.874 1 0.937
+"Ulna_length" 0.603 0.45 0.878 0.894 0.937 1

@@ -1,0 +1,651 @@
+---
+title: "R로 배우는 데이터사이언스"
+subtitle: '의사결정나무와 앙상블 실습'
+author: "서울대학교 통계연구소" 
+output:
+  html_document
+mainfont: NanumGothic 
+---
+
+
+## 실습에 사용될 라이브러리 설치
+
+다음의 패키지가 설치되어 있지 않으면 설치한다.  
+
+```{r eval=FALSE}
+#install.packages("mlbench") # 데이터셋
+#install.packages("tree")    # 의사결정나무 #R 3.6버전 이상 필요
+#install.packages("ipred")   # 배깅
+#install.packages("randomForest")  #랜덤포레스트
+#install.packages("pdp")     #부분의존도 그림
+```
+
+# 데이터 전처리 및 분할
+
+## 실습 데이터
+
+- R 패키지 mlbench에 내장된 데이터를 사용하여 실습
+- BreastCancer : 유방 낭종의 악성 여부와 관련 의학적 정보를 나타낸 데이터로 분류분석에 적용
+- BostonHousing : 보스턴의 집값과 연관요인을 나타낸 데이터로 회귀분석을 적용
+
+## Breast Cancer 데이터
+
+- R 패키지 mlbench를 불러온 후 data 함수를 통해 내장된 데이터 BreastCancer를 불러올 수 있다.
+
+- 총 699개의 관측치와 11개의 변수가 있다.
+    ```{r warning=FALSE}
+    library(mlbench)
+    data(BreastCancer)
+    dim(BreastCancer)
+    ```
+
+- 변수 11개의 이름 및 설명은 다음과 같다.
+
+| 변수명          | 변수 설명                     |
+|:----------------|:------------------------------|
+| ID              | Sample code number            |
+| Cl.thickness    | Clump Thickness               |
+| Cell.size       | Uniformity of Cell Size       | 
+| Cell.shape      | Uniformity of Cell Shape      |
+| Marg.adhesion   | Marginal Adhesion             |
+| Epith.c.size    | Single Epithelial Cell Size   |
+| Bare.nuclei     | Bare Nuclei                   |
+| Bl.cromatin     | Bland Chromatin               |
+| Normal.nucleoli | Normal Nucleoli               |
+| Mitoses         | Mitoses                       |
+| Class           | Class                         |
+
+- 이는 RStudio 콘솔에서 `help(BreastCancer)` 을 실행하거나, 우측 하단 창의 "Help"로 들어가서 "BreastCancer"를 검색하면 확인할 수 있다. 
+
+- 첫 6개의 관측치는 다음과 같다.
+    ```{r  }
+    head(BreastCancer)
+    ```
+    
+- Id는 사용하지 않으며, Class가 maligant인지 benign인지 예측하는 것이 목표이다.
+
+## Breast Cancer 데이터 전처리
+
+- Id 열을 제거한다.
+    ```{r  }
+    BreastCancer <- BreastCancer[,-1]
+    ```
+
+- 변수별 결측치 개수를 확인한다. 결측이 있는 관측치를 제거한다.
+    ```{r  }
+    colSums(is.na(BreastCancer))
+    BreastCancer <- BreastCancer[complete.cases(BreastCancer), ]
+    dim(BreastCancer)
+    ```
+
+- 설명변수의 데이터형을 보면 ordered factor로 되어있다.
+    ```{r  }
+    head(BreastCancer$Cell.size)
+    class(BreastCancer$Cell.size)
+    ```
+
+- Class를 제외한 설명변수를 모두 수치형으로 변환한다.
+    ```{r  }
+    XIdx <- !(names(BreastCancer) %in% 'Class')
+    BreastCancer[XIdx] <-
+    Map(as.numeric, BreastCancer[XIdx])
+    ```
+
+## Breast Cancer 데이터 분할
+
+- 전체 데이터의 30%를 테스트 데이터로 사용한다. 테스트 데이터로 사용할 자료점의 인덱스를 `BC.TsIdx`에 저장한다.
+    ```{r  }
+    BC.n <- nrow(BreastCancer)
+    ratioTs <- 0.3
+    BC.nTs <- round(ratioTs * BC.n)
+    BC.nTr <- BC.n-BC.nTs
+    set.seed(1)
+    BC.TsIdx <- sample(BC.n, BC.nTs)
+    ```
+
+## Boston Housing 데이터
+
+- mlbench를 불러온 후 `data` 함수를 통해 내장된 데이터 BostonHousing를 불러올 수 있다.
+- 총 506개의 관측치와 14개의 변수가 있다.
+    ```{r  }
+    data(BostonHousing)
+    dim(BostonHousing)
+    ```
+
+- 변수 14개의 이름 및 설명은 다음과 같다.
+
+| 변수 이름   | 변수 설명                                                                     |
+|:------------|:------------------------------------------------------------------------------|
+| crim        | per capita crime rate by town                                                 | 
+| zn          | proportion of residential land zoned for lots over 25,000 sq.ft               |
+| indus       | proportion of non-retail business acres per town                              | 
+| chas        | Charles River dummy variable (= 1 if tract bounds river; 0 otherwise)         |
+| nox         | nitric oxides concentration (parts per 10 million)                            |
+| rm          | average number of rooms per dwelling                                          |
+| age         | proportion of owner-occupied units built prior to 1940                        |
+| dis         | weighted distances to five Boston employment centres                          |
+| rad         | index of accessibility to radial highways                                     |
+| tax         | full-value property-tax rate per USD 10,000                                   |
+| ptratio     | pupil-teacher ratio by town                                                   |
+| b           | 1000(B - 0.63)\textasciicircum{}2 where B is the proportion of blacks by town | 
+| lstat       | percentage of lower status of the population                                  |
+| medv        | median value of owner-occupied homes in USD 1000's                            |
+
+- 이는 RStudio 콘솔에서 `help(BostonHousing)`을 실행하거나, 우측 하단 창의 "Help"로 들어가서 "BostonHousing"을 검색하면 확인할 수 있다.
+
+
+- 첫 6개의 관측치는 다음과 같다.
+- 다른 변수들을 이용해 medv를 예측하는 것이 목적이다.
+    ```{r  }
+    head(BostonHousing)
+    ```
+
+## Boston Housing 전처리 및 데이터 분할
+
+- 결측치가 없고, 설명변수들의 데이터형에 문제가 없으므로 전처리를 따로 하지 않는다.
+
+- 전체 데이터의 30%를 테스트 데이터로 사용한다. 테스트 데이터로 사용할 자료점의 인덱스를 `BH.TsIdx`에 저장한다.
+    ```{r  }
+    BH.n <- nrow(BostonHousing)
+    ratioTs <- 0.3
+    BH.nTs <- round(ratioTs * BH.n)
+    BH.nTr <- BH.n-BH.nTs
+    set.seed(1)
+    BH.TsIdx <- sample(BH.n, BH.nTs)
+    ```
+
+# 의사결정나무
+
+## 의사결정나무
+
+- tree 패키지의 `tree` 함수를 사용하여 의사결정나무를 적합할 수 있다.
+- `BreastCancer[-BC.TsIdx, ]`를 통해 train 데이터를 선택하여 `data` 인자로 넣어준다.
+- formula로 어떤 변수를 사용하여 어떤 변수를 예측할지 지정해준다. `Class~.` 는 나머지 모든 변수로 `Class`를 예측한다는 formula이다.
+    ```{r warning=FALSE}
+    library(tree)
+    BC.TreeFit<-tree(Class~., data=BreastCancer[-BC.TsIdx, ])
+    ```
+    
+- 적합 결과를 출력하면 다음과 같이 각 노드에서 어떻게 분할되는지 볼 수 있다.
+- 한 눈에 알아보기는 어렵다.
+    ```{r }
+    BC.TreeFit
+    ```
+
+- plot 함수로 tree 구조를 그릴 수 있으나 노드에 대한 정보는 보여주지 않는다.
+- text 함수과 같이 쓰면 좋다.
+    ```{r}
+    plot(BC.TreeFit)
+    text(BC.TreeFit)
+    ```
+
+## 정지규칙
+
+- `tree.control`로 마디를 언제까지 분할할지 지정할 수 있다.
+- `mindev`를 지정하면 끝마디의 deviance가 뿌리마디의 deviance의 `mindev` 배보다 클 때까지만 분할한다.
+- `mindev`는 기본 0.01이며 커질수록 더 적게 분할하며 작아질수록 더 많이 분할한다.
+    ```{r  }
+    BC.BigTreeFit<-tree(Class~., data=BreastCancer[-BC.TsIdx, ], 
+    control = tree.control(BC.nTr, mindev = 0.001))
+    BC.SmallTreeFit<-tree(Class~., data=BreastCancer[-BC.TsIdx, ], 
+    control = tree.control(BC.nTr, mindev = 0.1))
+    ```
+
+- `mindev`가 작은 경우
+    ```{r}
+    plot(BC.BigTreeFit)
+    text(BC.BigTreeFit)
+    ```
+
+- `mindev`가 큰 경우
+    ```{r}
+    plot(BC.SmallTreeFit)
+    text(BC.SmallTreeFit)
+    ```
+
+## 의사결정나무의 교차검증
+
+- 이론 강의의 교차검증 예제와 비슷한 방식으로 최적 모형을 고르려고 한다.
+- 교차검증 예제에서는 주어진 모형 집합이 있으나 의사결정나무에서는 데이터에 따라 모형이 결정되므로 그대로 적용할 수는 없다.
+- 최적 모형을 선택하는 대신 최적 끝마디 수를 선택한다.
+- `cv.tree`에 적합된 의사결정나무와 fold의 수 `K`를 입력해주면 된다. `K`의 기본값은 `10`이다.
+
+
+- 다음 그래프는 끝마디 수에 따른 교차검증 deviance를 나타낸 것이다.
+- $\text{비용복잡도}(\alpha)=\text{나무 } T\text{의 } deviance + \alpha |T|$에서 $x$축이 $|T|$, $y$축이 교차검증 $deviance$에 해당된다.
+- $\text{비용복잡도}(\alpha)$를 최소로 하는 $|T|$를 $\alpha$의 함수로 볼 수 있으며 $x$축을 $|T|$ 대신 $\alpha$에 대해서 표현할 수 있다. 그래프 위에 나타나 있다.
+    ```{r}
+    BC.TreeCV <- cv.tree(BC.BigTreeFit)
+    plot(BC.TreeCV)
+    ```
+
+## 가지치기
+
+- `BC.TreeCV`에는 끝마디 수에 따른 교차검증 deviance가 저장되어있으며 이를 최소로하는 끝마디 수를 `BestSize`에 저장한다.
+- `prune.tree` 함수를 이용해 적합된 나무 `BC.TreeFit`를 끝마디 수가 `BestSize`가 되도록 가지치기한다.
+    ```{r}
+    BestSize <- BC.TreeCV$size[which.min(BC.TreeCV$dev)]
+    BestSize
+    BC.TreePruned <- prune.tree(BC.BigTreeFit, best = BestSize)
+    ```
+
+- 가지치기된 나무는 다음과 같다. 
+    ```{r}
+    plot(BC.TreePruned)
+    text(BC.TreePruned)
+    ```
+
+## 의사결정나무 예측 - Breast Cancer
+
+- `BC.TreeFit`을 사용하여 테스트 데이터를 예측한다. 
+- `predict`에서 `type`을 `'class'`로 하여 속한 그룹을 예측하도록 한다. 지정하지 않을 경우 확률이 계산된다.
+- confusion matrix와 accuracy를 계산한다.
+    ```{r}
+    BC.TreeFit.pred <- predict(BC.TreeFit, BreastCancer[BC.TsIdx, ], type = 'class')
+    table(pred=BC.TreeFit.pred, true=BreastCancer$Class[BC.TsIdx])
+    BC.TreeFit.Acc <- mean(BC.TreeFit.pred==BreastCancer$Class[BC.TsIdx])
+    BC.TreeFit.Acc
+    ```
+
+## 가지치기된 나무 예측 - Breast Cancer
+
+- 다음은 `BC.TreePruned`의 예측 결과이다.
+    ```{r}
+    BC.TreePruned.pred <- predict(BC.TreePruned, BreastCancer[BC.TsIdx, ], type = 'class')
+    table(pred=BC.TreePruned.pred, true=BreastCancer$Class[BC.TsIdx])
+    BC.TreePruned.Acc <- mean(BC.TreePruned.pred==BreastCancer$Class[BC.TsIdx])
+    BC.TreePruned.Acc
+    ```
+
+## 의사결정나무 학습 - Boston Housing
+
+- 회귀분석 자료에도 같은 방식으로 의사결정나무를 적합한다.
+- 반응변수인 `medv`가 수치형이며 별도의 설정없이 자동으로 회귀모형이 적합된다.
+    ```{r  }
+    class(BostonHousing$medv)
+    BH.TreeFit<-tree(medv~., data=BostonHousing[-BH.TsIdx, ])
+    BH.TreeFit
+    ```
+
+    ```{r}
+    plot(BH.TreeFit)
+    text(BH.TreeFit)
+    ```
+
+## 정지규칙
+
+- `tree.control`로 마디를 언제까지 분할할지 지정할 수 있다.
+- `mindev`를 지정하면 끝마디의 deviance가 뿌리마디의 deviance의 `mindev` 배보다 클 때까지만 분할한다.
+- `mindev`는 기본 0.01이며 커질수록 더 적게 분할하며 작아질수록 더 많이 분할한다.
+    ```{r  }
+    BH.BigTreeFit<-tree(medv~., data=BostonHousing[-BH.TsIdx, ], 
+    control = tree.control(BH.nTr, mindev = 0.001))
+    BH.SmallTreeFit<-tree(medv~., data=BostonHousing[-BH.TsIdx, ], 
+    control = tree.control(BH.nTr, mindev = 0.1))
+    ```
+
+- `mindev`가 작은 경우
+    ```{r}
+    plot(BH.BigTreeFit)
+    text(BH.BigTreeFit)
+    ```
+
+- `mindev`가 큰 경우
+    ```{r}
+    plot(BH.SmallTreeFit)
+    text(BH.SmallTreeFit)
+    ```
+
+## 회귀모형 평가 방법
+
+- Breast Cancer 데이터와 비슷하게 예측값을 계산하고 성능을 확인한다.
+- 분류가 아닌 회귀모형이므로 confusion matrix와 accuracy 대신 산점도와 평균제곱오차(MSE)를 구한다.
+
+## 의사결정나무 예측 - Boston Housing
+
+```{r}
+BH.TreeFit.pred <- predict(BH.TreeFit, BostonHousing[BH.TsIdx, ])
+plot(x=BH.TreeFit.pred, y=BostonHousing$medv[BH.TsIdx])
+#예측값의 범주 수가 끝마디 수 이하라는 한계가 있음.
+BH.TreeFit.MSE <- mean((BH.TreeFit.pred-BostonHousing$medv[BH.TsIdx])^2)
+BH.TreeFit.MSE
+```
+
+# 배깅
+
+## Bagging
+
+- Bagging은 패키지 "ipred"의 `bagging` 함수를 사용하여 학습할 수 있다.
+- `bagging` 함수에서는 정해진 개수만큼 나무를 만드는데 이를 `nbagg`에 지정하면 된다.
+
+## Bagging 학습 - Breast Cancer
+
+```{r, warning=FALSE}
+library(ipred)
+BC.Bag <- bagging(Class~., data = BreastCancer[-BC.TsIdx, ], 
+nbagg = 100, coob=TRUE)
+BC.Bag
+```
+
+## Bagging 구조 확인
+
+- `BC.Bag`은 100개의 나무로 이루어져있으며 이 나무들의 정보는 `BC.Bag$mtrees`에 저장되어있다.
+- `BC.Bag$mtrees`는 길이가 100인 리스트이며 하나의 원소가 하나의 나무를 나타낸다.
+    ```{r}
+    length(BC.Bag$mtrees)
+    ```
+
+- `BC.Bag`의 첫번째 나무를 확인하면 다음과 같다.
+    ```{r}
+    BC.Bag$mtrees[[1]]$btree
+    ```
+
+## Bagging 구조 확인
+
+- 다음은 `BC.Bag`의 1 -- 3번째 나무를 나타낸 그래프이다. 
+    ```{r}
+    par(mfrow=c(1,3))
+    for(i in 1:3) {
+        plot(BC.Bag$mtrees[[i]]$btree)
+        text(BC.Bag$mtrees[[i]]$btree)
+    }
+    par(mfrow=c(1,1))
+    ```
+
+## Bagging 구조 확인
+
+- `BC.Bag`는 이러한 나무 100개로 이루어져있다.
+- 수많은 나무로 이루어진 bagging을 직접 해석하는 것은 어렵다.
+- 부분의존도 그림을 통해 일부 변수에 대해 해석할 수 있다.
+
+## Bagging 예측 - Breast Cancer
+
+```{r}
+BC.Bag.pred <- predict(BC.Bag, newdata = BreastCancer[BC.TsIdx, ])
+table(pred=BC.Bag.pred, true=BreastCancer$Class[BC.TsIdx])
+BC.Bag.Acc <- mean(BC.Bag.pred==BreastCancer$Class[BC.TsIdx])
+BC.Bag.Acc
+```
+
+## 부분의존도 그림
+
+- 패키지 "pdp"의 `partial` 함수로 부분의존도 함수를 계산한 후 그 결과를 `plotPartial`에 입력하여 부분의존도 그림을 그릴 수 있다.
+- `partial` 함수에는 적합된 모델과 모델에 포함된 설명변수 중 관심있는 변수 하나의 이름을 지정해줘야한다.
+- "ipred"나 "randomForest" 등 자주 사용되는 여러 패키지들에서 학습된 모델을 지원한다.
+
+
+- 세포 크기(`Cell.size`)가 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r, warning=FALSE}
+    library(pdp)
+    BC.Bag.Cell.size <- partial(BC.Bag, pred.var = 'Cell.size', which.class="malignant")
+    plotPartial(BC.Bag.Cell.size)
+    ```
+
+- 덩어리 굵기(`Cl.thickness`)가 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r}
+    BC.Bag.Cl.thickness <- partial(BC.Bag, pred.var = 'Cl.thickness',  which.class="malignant")
+    plotPartial(BC.Bag.Cl.thickness)
+    ```
+
+- 접착력(`Marg.adhesion`)이 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r}
+    BC.Bag.Marg.adhesion <- partial(BC.Bag, pred.var = 'Marg.adhesion',  which.class="malignant")
+    plotPartial(BC.Bag.Marg.adhesion)
+```
+
+## Bagging 학습 - Boston Housing
+
+- 수치형 자료에 대해서도 별 다른 설정없이 회귀모형을 적합시킬 수 있다.
+    ```{r}
+    BH.Bag <- bagging(medv~., data = BostonHousing[-BH.TsIdx, ],  nbagg = 100, coob=TRUE)
+    BH.Bag
+    ```
+
+    ```{r}
+    BH.Bag.pred <- predict(BH.Bag, newdata = BostonHousing[BH.TsIdx, ])
+    plot(x=BH.Bag.pred, y=BostonHousing$medv[BH.TsIdx])
+    BH.Bag.MSE <- mean((BH.Bag.pred-BostonHousing$medv[BH.TsIdx])^2)
+    BH.Bag.MSE
+    ```
+
+## Bagging 부분의존도 그림 
+
+- 범죄율(`crim`)이 증가할수록 집값(`medv`)의 예측값이 감소한다.
+    ```{r, warning=FALSE}
+    library(pdp)
+    BH.Bag.crim <- partial(BH.Bag, pred.var = 'crim')
+    plotPartial(BH.Bag.crim)
+    ```
+
+- 방의 수(`rm`)가 증가할수록 집값(`medv`)의 예측값이 증가한다.
+    ```{r}
+    BH.Bag.rm <- partial(BH.Bag, pred.var = 'rm')
+    plotPartial(BH.Bag.rm)
+    ```
+
+## Bagging 부분의존도 그림 (lstat)
+
+- 지위가 낮은 사람의 비율(`lstat`)이 증가할수록 집값(`medv`)의 예측값이 감소한다.
+    ```{r}
+    BH.Bag.dis <- partial(BH.Bag, pred.var = 'lstat')
+    plotPartial(BH.Bag.dis)
+    ```
+
+# 랜덤포레스트
+
+## Random Forest
+
+- 패키지 "randomForest"의 `randomForest` 함수를 이용하여 랜덤포레스트를 적합할 수 있다.
+- `randomForest`에서는 나무의 개수 `ntree`와 각 노드에서 사용할 후보 변수의 수 `mtry`를 지정해야한다.
+- 총 설명변수의 수를 $p$라 할 때, `ntree`의 기본값은 500이며 분류모형일 때, `mtry` $\approx \sqrt{p}$, 회귀모형일 때, `mtry` $\approx p/3$이다.
+
+## Random Forest 학습 - Breast Cancer
+
+```{r, warning=FALSE, message=FALSE}
+library(randomForest)
+BC.RF <- randomForest(Class~., data = BreastCancer[-BC.TsIdx, ],  importance = TRUE)
+BC.RF
+```
+
+## Random Forest 예측 - Breast Cancer
+
+```{r}
+BC.RF.pred <- predict(BC.RF, newdata = BreastCancer[BC.TsIdx, ])
+table(pred=BC.RF.pred, true=BreastCancer$Class[BC.TsIdx])
+BC.RF.Acc <- mean(BC.RF.pred==BreastCancer$Class[BC.TsIdx])
+BC.RF.Acc
+```
+
+## Random Forest 변수중요도
+
+- `importance` 함수를 사용하여 중요도를 구할 수 있다.
+- 특정 변수의 값을 데이터 내에서 랜덤하게 섞어서 예측에 도움이 되지 않도록 만든 후 예측했을 때, 결과가 얼마나 안 좋아지는지를 계산한다.
+- 더 많이 나빠질수록 예측에 중요한 변수라 볼 수 있다. 
+    ```{r}
+    head(importance(BC.RF)[,3:4])
+    ```
+
+## Random Forest 변수중요도 그림
+
+- `varImpPlot` 함수를 사용하면 중요도를 그림으로 나타낼 수 있다.
+- 두 가지 기준 공통으로 `Cell.size`, `Bare.nuclei`가 중요한 것으로 보인다.
+    ```{r}
+    varImpPlot(BC.RF)
+    ```
+
+## Random Forest 부분의존도 그림
+
+- 세포 크기(`Cell.size`)가 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r, warning=FALSE}
+    library(pdp)
+    BC.RF.Cell.size <- partial(BC.RF, pred.var = 'Cell.size', which.class="malignant")
+    plotPartial(BC.RF.Cell.size)
+    ```
+
+
+- 덩어리 굵기(`Cl.thickness`)가 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r}
+    BC.RF.Cl.thickness <- partial(BC.RF, pred.var = 'Cl.thickness', 
+    which.class="malignant")
+    plotPartial(BC.RF.Cl.thickness)
+    ```
+
+- 접착력(`Marg.adhesion`)이 증가할수록 `Class`가 악성("maligant")일 확률의 예측값이 증가한다.
+    ```{r}
+    BC.RF.Marg.adhesion <- partial(BC.RF, pred.var = 'Marg.adhesion', 
+    which.class="malignant")
+    plotPartial(BC.RF.Marg.adhesion)
+    ```
+
+## Random Forest 학습 - Boston Housing
+
+```{r}
+BH.RF <- randomForest(medv~., data = BostonHousing[-BH.TsIdx, ],  importance = TRUE)
+BH.RF
+```
+
+## Random Forest 예측 - Boston Housing
+
+```{r}
+BH.RF.pred <- predict(BH.RF, newdata = BostonHousing[BH.TsIdx, ])
+plot(x=BH.RF.pred, y=BostonHousing$medv[BH.TsIdx])
+BH.RF.MSE <- mean((BH.RF.pred-BostonHousing$medv[BH.TsIdx])^2)
+BH.RF.MSE
+```
+
+## Random Forest 변수중요도
+
+- `importance` 함수를 사용하여 중요도를 구할 수 있다.
+- 특정 변수의 값을 데이터 내에서 랜덤하게 섞어서 예측에 도움이 되지 않도록 만든 후 예측했을 때, 결과가 얼마나 안 좋아지는지를 계산한다.
+- 더 많이 나빠질수록 예측에 중요한 변수라 볼 수 있다. 
+    ```{r}
+    head(importance(BH.RF))
+    ```
+
+## Random Forest 변수중요도 그림
+
+- `varImpPlot` 함수를 사용하면 중요도를 그림으로 나타낼 수 있다.
+- 두 가지 기준 공통으로 `lstat`, `rm`이 중요한 것으로 보인다.
+    ```{r}
+    varImpPlot(BH.RF)
+    ```
+
+- 범죄율(`crim`)이 증가할수록 집값(`medv`)의 예측값이 감소한다.
+    ```{r}
+    BH.RF.crim <- partial(BH.RF, pred.var = 'crim')
+    plotPartial(BH.RF.crim)
+    ```
+
+- 방의 수(`rm`)가 증가할수록 집값(`medv`)의 예측값이 증가한다.
+    ```{r}
+    BH.RF.rm <- partial(BH.RF, pred.var = 'rm')
+    plotPartial(BH.RF.rm)
+    ```
+    
+- 고용센터와의 거리(`dis`)가 증가할수록 집값(`medv`)의 예측값이 감소한다.
+    ```{r}
+    BH.RF.dis <- partial(BH.RF, pred.var = 'dis')
+    plotPartial(BH.RF.dis)
+    ```
+
+# 방법론 비교
+
+## 예측모형 방법론들
+
+- 예측모형은 반응변수($Y$)의 형태에 따라 분류분석과 회귀분석으로 나뉜다.
+
+- 분류분석 : 반응변수가 범주형
+    - Logistic regression
+    - Decision tree
+    - Bagging
+    - Random forest
+    
+- 회귀분석 : 반응변수가 연속형
+    - Linear regression
+    - Decision tree
+    - Bagging
+    - Random forest
+    
+## Breast Cancer --  로지스틱 회귀
+
+```{r}
+BC.LoR <- glm(Class~.,family=binomial, data = BreastCancer[-BC.TsIdx, ])
+BC.LoR
+```
+
+```{r}
+BC.LoR.prob <- predict(BC.LoR, newdata = BreastCancer[BC.TsIdx, ],  type="response")
+BC.LoR.pred=ifelse(BC.LoR.prob<0.5,"benign","malignant")
+table(pred=BC.LoR.pred, true=BreastCancer$Class[BC.TsIdx])
+BC.LoR.Acc <- mean(BC.LoR.pred==BreastCancer$Class[BC.TsIdx])
+BC.LoR.Acc
+```
+
+## Breast Cancer 예측 성능 비교
+
+- 로지스틱 회귀모형과 Random Forest의 예측성능이 가장 좋다.
+    ```{r}
+    BC.LoR.Acc           # Logistic regression
+    BC.TreeFit.Acc       # Decision tree
+    BC.TreePruned.Acc    # Decision tree (pruning)
+    BC.Bag.Acc           # Bagging
+    BC.RF.Acc            # Random Forest
+    ```
+
+## Boston Housing -- 선형회귀
+
+```{r}
+BH.LM <- lm(medv~., data = BostonHousing[-BH.TsIdx, ])
+BH.LM
+```
+
+```{r}
+BH.LM.pred <- predict(BH.LM, newdata = BostonHousing[BH.TsIdx, ])
+plot(x=BH.LM.pred, y=BostonHousing$medv[BH.TsIdx])
+BH.LM.MSE <- mean((BH.LM.pred-BostonHousing$medv[BH.TsIdx])^2)
+BH.LM.MSE
+```
+
+## Boston Housing 예측 성능 비교
+
+- Random Forest의 예측성능이 가장 좋으며 Bagging이 그 다음으로 좋다.
+    ```{r}
+    BH.LM.MSE       # Linear model
+    BH.TreeFit.MSE  # Decision tree
+    BH.Bag.MSE      # Bagging
+    BH.RF.MSE       # Random forest
+    ```
+
+
+# 연습문제
+
+
+ISLR 패키지에 있는 `Carseats` 데이터에서 유아 카시트 판매량를 분석해보려고 한다. 먼저 ISLR 패키지를 다운받는다. 이는 Gareth James, Daniela Witten 등이 저술한 책 [An Introduction to Statistical Learning with Applications in R](https://link.springer.com/book/10.1007/978-1-4614-7138-7)에서 다루는 데이터셋이 모여있는 패키지이다.
+```{r, eval=FALSE}
+install.packages("ISLR")
+```
+
+
+`Carseats` 데이터는 400개의 매장에서 유아 카시트 판매량을 기록한 자료이다. (`help(Carseats, package = "ISLR")` 참고) 데이터는 아래와 같이 불어올 수 있다.
+```{r}
+library(ISLR)
+data(Carseats)
+head(Carseats, n=3)
+```
+
+
+먼저 `Sales` 변수는 연속형 변수이므로 regression tree를 적합하려고 한다. 다음 물음에 답하여라.
+
+a. 데이터를 먼저 train 데이터와 test 데이터로 나눈 후 train 데이터에 대해 의사결정나무를 적합한 후 test 데이터에 대해 예측 오차(MSE)를 계산하여라. 재현성을 위해 `set.seed(2023217)`를 실행하여 random seed를 2023217로 고정한다.
+a. 교차검증을 이용해 최적의 의사결정나무를 찾고, 해당 의사결정나무의 예측 오차(test MSE)를 앞서 a에서 계산한 예측 오차와 비교하여라.
+a. 랜덤포레스트 모형을 적합하고 예측 오차를 계산하여라. 어떤 변수가 가장 중요한 변수인가? `mtry` 옵션을 바꿔가며 예측 오차가 어떻게 나오는지 살펴보아라.
+
+
+앞서 `Sales` 변수를 연속형 변수로 다뤘다면 이번에는 이를 전처리하여 새로운 `High`라는 변수를 만들어 categorical tree를 적합하려고 한다. `High` 변수는 `Sales`가 8 초과면 yes, 8 이하면 no로 정의된다.
+```{r}
+High <- ifelse(Carseats$Sales <= 8, "No", "Yes")
+Carseats.cat <- data.frame(Carseats, High)
+```
+
+
+d. 로지스틱 회귀모형과 랜덤포레스트 모형을 적합하고 예측 정확도를 비교하여라.
