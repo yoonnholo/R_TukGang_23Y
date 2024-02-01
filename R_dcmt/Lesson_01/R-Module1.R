@@ -195,6 +195,7 @@ order(x)
 x[order(x)]
 
 iris.ordered <- iris[order(iris$Sepal.Length), ]
+iris.ordered <- iris[order(iris$Sepal.Length), c(1,5)]
 head(iris.ordered)
 
 head(iris[order(iris$Sepal.Length , iris$Petal.Length), ])
@@ -202,6 +203,7 @@ sort(iris$Sepal.Length)
 
 sample(1:10, 5) # 비복원추출 (중복 불허)
 sample(1:10, 5, replace = TRUE) # 복원추출 (중복 허용)
+sample(10,5)
 iris.resample <- iris[sample(NROW(iris), NROW(iris)), ]
 head(iris.resample, 5)
 
