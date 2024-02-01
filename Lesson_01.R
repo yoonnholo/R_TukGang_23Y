@@ -1,5 +1,5 @@
 ## Lesson 01
 
-install.views("Econometrics")
+install.views("Econometrics", coreOnly = TRUE)
 
-3+5
+3

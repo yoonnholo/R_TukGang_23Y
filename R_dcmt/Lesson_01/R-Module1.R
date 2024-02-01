@@ -33,6 +33,10 @@ include_graphics("./figure/fig36.png")
 
 include_graphics("./figure/fig34.png")
 
+## Lesson 01 ----
+## 이후 대쉬 4개 (----) <- 책갈피 기능
+
+
 
 library(modeest)
 
@@ -42,18 +46,30 @@ mfv(c(1,5,7,7,9,9,10))
 
 ## nothing happen
 
-3+5
-3/5
+3 + 5
+-1 / 0
 
-x = 5; y = 6
+?mfv
+
+13 %% 4 ## 자연수 나누기 나머지
+13 %/% 4 ## 자연수 나누기 몫
+
+
+x = 5; y = 6 ## ; <- enter
 x + y
 sin(x) + exp(y)
 
-is.numeric(10)
+## cmd + shift + a -> 코드 띄어쓰기 하기
+
+logical(length = 0)
+is.logical(x)
+
+is.numeric(50)
+
 is.numeric('3')
 is.numeric("3")
 
-is.character(5)
+is.character(x)
 is.character('5')
 is.character("5")
 is.infinite(-Inf)
