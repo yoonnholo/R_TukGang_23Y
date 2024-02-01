@@ -98,6 +98,8 @@ myvector <- c(8, 6, 9, 10, 5)
 mylist <- list(name = "Fred", wife = "Mary", myvector)
 mylist
 
+mylist[[3]]
+
 mylist[[2]]
 mylist$wife
 mylist[[3]]
@@ -155,17 +157,19 @@ myFamily$myFamAges
 
 myFamily$myFamAges <- c(myFamily$myFamAges, 11)
 
+iris
+
 summary(iris)
 
 str(iris)
 
 head(iris)
 
-apply(iris[, 1:4], 2, sum)
+apply(iris[, 1:4], 2, sum) ## 1 = 로우, 2 = 컬럼
 
-lapply(iris[, 1:4], mean)
+lapply(iris[, 1:4], sum)
 
-sapply(iris[, 1:4], mean)
+sapply(iris[, 1:4], sum)
 
 y = sapply(iris[, 1:4], function(x){x > 3}) 
 head(y, 3)
@@ -173,14 +177,14 @@ head(y, 3)
 levels(iris$Species)
 tapply(iris$Sepal.Length, iris$Species, mean)
 
-byspecies <- split(iris, iris$Species)
+byspecies <- split(iris, iris$Species)  ## 데이터 나눠서 보여주기
 str(byspecies)
 
-setosa <- subset(iris, Species == "setosa")
+setosa <- subset(iris, Species == "setosa") ## 원하는 데이터만 아예 분리하기
 head(setosa)
 
 colsel <- subset(iris, select = c(Sepal.Length, Species))
-head(colsel)
+str(colsel)
 
 colsel <- subset(iris, select = -c(Sepal.Length, Species))
 head(colsel)
@@ -194,6 +198,7 @@ iris.ordered <- iris[order(iris$Sepal.Length), ]
 head(iris.ordered)
 
 head(iris[order(iris$Sepal.Length , iris$Petal.Length), ])
+sort(iris$Sepal.Length)
 
 sample(1:10, 5) # 비복원추출 (중복 불허)
 sample(1:10, 5, replace = TRUE) # 복원추출 (중복 허용)
@@ -201,3 +206,4 @@ iris.resample <- iris[sample(NROW(iris), NROW(iris)), ]
 head(iris.resample, 5)
 
 aggregate(Sepal.Width  ~  Species,  iris, mean)
+rrrrrr

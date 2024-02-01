@@ -15,6 +15,7 @@ R.version
 
 font_import(pattern = "malgun")
 y
+n
 theme_set(theme_minimal(base_family = "malgun"))
 
 fonts()
