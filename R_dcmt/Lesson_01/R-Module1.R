@@ -206,4 +206,3 @@ iris.resample <- iris[sample(NROW(iris), NROW(iris)), ]
 head(iris.resample, 5)
 
 aggregate(Sepal.Width  ~  Species,  iris, mean)
-rrrrrr
