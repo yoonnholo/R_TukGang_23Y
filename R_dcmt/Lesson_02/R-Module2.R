@@ -16,6 +16,8 @@ cat("abc\n")
 cat(x, "abc", "de\n")
 cat(x, "abc", "de\n", sep = "")
 
+##프린트랑 비슷한데 [1] 이런거 없음. \n 이건 엔터 치라는 뜻. sep 이건 "" 사이에 있는 게 각 캐릭터 사이에 생김.
+
 library(knitr)
 include_graphics("./figure/fig4.png")
 
@@ -71,7 +73,7 @@ for (i  in  1:n) s[i] = sum(e[1:i])
 t = 1:n
 plot(t, s)
 
-b = c(1, 5, 8, 0, -1, 2)
+b = c(1, 5, -8, 0, -1, 2)
 counter = 0
 isPositive = TRUE
 while (isPositive) {
@@ -140,7 +142,7 @@ myfunction(25)
 
 fish(myvector)
 
-x1 <- c(1, 2, 1, 2, 2, 3, 3, 4, 5, 4, 5)
+x1 <- c(1, 2, 1, 5, 2, 3, 3, 4, 5, 4, 2)
 (count_x1 <- tabulate(x1))
 which.max(count_x1)
 
@@ -161,7 +163,11 @@ mdata = c(1, 2, 1, 3, 4, 9, 5)
 which.max(mdata)
 mdata = c(1, 2, 1, 3, 4, 9, 5, 9)
 which.max(mdata)
+##-------------------------------------
 
+SSS <- function(xval){which.max(xval)}
+
+##-------------------------------------
 mywhich.max = function(x, val = FALSE, all = FALSE) { 
   n = length(x); ind = 1; m = x[1]
   for (i in 2:n) { if (m < x[i]) { ind = i; m = x[i] } }
@@ -223,16 +229,33 @@ g(f1, 3, 2)
 g(f2, 3, 2)
 
 g = function(y) {
-  h = function(x) {
-    return(x ^ 2 + y)
-  }
+  h = function(x) {return(x ^ 2 + y)}
   return(h)
 }
+
+##-----------
+
+A = function(y) {
+  h = function(x){return(x+y+100)}
+  return(h)
+}
+
+A(1)
+AAA <- A(1)
+AAA(3)
+
+
+##-----------
 
 test.ft = g(1) # test.ft가 g()의 output인 h 함수 역할을 함
 test.ft(2) # 2^2 + 1
 
+## source("djdjdjdj.R") <- 어떤 R 파일에서 환경 불러오기
+
+
+
 x <- y <- runif(1000000)
+head(x)
 
 # looped
 z1 <- c()
@@ -274,7 +297,7 @@ results
 mean.parallel <- function(n) {
   x <- runif(1000000)
   mx = mean(x)
-  fname = paste('meanx', n, '.RD', sep = '')
+  fname = paste('meanx', n, '.RD', sep = '') ##paste : 글자 붙이기 함수
   save(mx, file = fname)
   return(n)
 }
