@@ -53,9 +53,9 @@ ggplot(mpg, aes(x = displ, y = hwy)) +
 
 ggplot(mpg, aes(x = displ, y = hwy)) +
   geom_point(aes(color = class), size = 4) + geom_smooth() +
-  labs(title = "Fuel efficiency vs. Engine size",
+  labs(title = "망할 그래프",
        x = "Engine size", y = "Fuel efficiency") +
-  theme(plot.title = element_text(size = 22, hjust = 0.5))
+  theme(plot.title = element_text(size = 15, hjust = 0.5))
 
 
 # ----- 연속형 자료의 요약 ----- #
@@ -101,15 +101,15 @@ ggplot(iris) +
   geom_point(aes(x = Petal.Length, y = Petal.Width)) +
   labs(title = "Scatter plot of Petal Width vs. Petal Length",
        x = "petal length", y = "petal width") +
-  theme(plot.title = element_text(size = 22, hjust = 0.5))
+  theme(plot.title = element_text(size = 18, hjust = 0.5))
 
 # 품종에 따른 산포를 살펴보기 위해 color aes 지정
 ggplot(iris) +
   geom_point(aes(x = Petal.Length, y = Petal.Width,
-                 color = Species, shape = Species), size = 4) +
+                 color = Species, shape = Species), size = 2) +
   labs(title = "Scatter plot of Petal Width vs. Petal Length",
        x = "petal length", y = "petal width") +
-  theme(plot.title = element_text(size = 22, hjust = 0.5))
+  theme(plot.title = element_text(size = 18, hjust = 0.5))
 
 # 꽃받침의 크기와 너비 산점도 (같은 방식으로)
 ggplot(iris) +
