@@ -59,7 +59,7 @@ addmargins(tab)
 
 # 분할표의 기술통계량 : 상대빈도표
 # 열(margin=2)에 있는 변수인 선실 등급(pclass)별로 생존여부(survived)의 상대빈도를 구하면
-prop.table(tab, margin=2)
+prop.table(tab, margin=1)
 
 #전체 탑승인원수를 기준으로 상대빈도를 구하면
 

@@ -23,3 +23,11 @@ fonts()
 install.packages("haven")
 
 install.packages("corrplot")
+
+install.packages("ISwR")
+install.packages("DescTools")
+
+
+library(DescTools)
+library(ISwR)
+
