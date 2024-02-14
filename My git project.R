@@ -31,3 +31,6 @@ install.packages("DescTools")
 library(DescTools)
 library(ISwR)
 
+install.packages("caret")
+install.packages("pROC")
+install.packages("GGally")

@@ -2,6 +2,7 @@
 # 하부 요통(lower back pain) 예측
 
 install.packages(c("skimr","corrplot","broom","moments"))
+install.packages(c("skimr","moments"))
 # 라이브러리 로드하기  ----------------------------------------------------------
 library(skimr) # 데이터 탐색
 library(dplyr) # 데이터 전처리
@@ -357,6 +358,13 @@ allmodels <- list(LDA = train_lda,
                   RDA = train_rda,
                   Logistic = train_glm,
                   Logistic_AIC = train_glmstep)
+
+allmodels <- list(LDA = train_lda,
+                  QDA = train_qda,
+                  kNN = train_knn,
+                  Logistic = train_glm,
+                  Logistic_AIC = train_glmstep)
+
 mods <- resamples(allmodels)   # including the knn results
 summary(mods)
 dotplot(mods, metric = "Accuracy")
