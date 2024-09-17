@@ -20,17 +20,7 @@ theme_set(theme_minimal(base_family = "malgun"))
 
 fonts()
 
-install.packages("haven")
-
-install.packages("corrplot")
-
-install.packages("ISwR")
-install.packages("DescTools")
-
-
 library(DescTools)
 library(ISwR)
 
-install.packages("caret")
-install.packages("pROC")
-install.packages("GGally")
+
